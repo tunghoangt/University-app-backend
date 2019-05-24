@@ -1,0 +1,83 @@
+
+#must login first
+mutation {
+  loginUser(email: "admin@example.com", password:"password") {
+    token, user{name, id, role}
+  }
+}
+
+
+query {users{id,name,role, email}}
+
+query{students{id,name,role, courses{name,id}}}
+
+query{
+  faculties{id name,role, courses {id name}}
+
+query {
+  courses {id, name students{id name} faculty {id name role}}
+}
+
+
+query {
+  todos {id name}
+}
+
+query{
+  studentcourses{courseId userId}
+}
+
+query{
+  assignments{id name course {id name}}
+}
+
+
+mutation {
+  loginUser(email: "admin@example.com", password:"password") {
+    token, user{firstName, id, role}
+  }
+}
+
+mutation {
+  createUser(name: "Admin", role:"Admin", email: "admin@example.com", password:"password") {id name role email salt passwordHash}
+}
+
+mutation {
+  createCourse(name:"Data Engineering", facultyId: 4) {id name}
+}
+
+mutation{
+  deleteCourse(courseId:3) {id}
+}
+
+mutation {
+  addStudentCourse(userId:3, courseId:1) {id userId courseId}
+}
+
+mutation{
+  delStudentCourse(courseId:2,userId:10){courseId userId}
+}
+
+
+mutation{
+  addAssignmentGrade(userId:2,assignmentId:1,grade:3.9){userId assignmentId grade}
+}
+
+--- Database inital set-up ** DO NOT RUN *** ---
+npx sequelize model:generate --name User --attributes name:string,email:string,role:string,salt:string,passwordHash:string
+npx sequelize model:generate --name UserSession --attributes userId:integer,SessionId:string
+npx sequelize model:generate --name Course --attributes name:string,facultyId:integer
+npx sequelize model:generate --name StudentCourse --attributes userId:integer,courseId:integer
+npx sequelize model:generate --name Assignment --attributes name:string,courseId:integer
+npx sequelize model:generate --name AssignmentGrade --attributes userId:integer,assignmentId:integer,grade:float
+
+npx sequelize-cli seed:generate --name demo-user
+sequelize migration:create --name name_of_your_migration
+
+npx sequelize db:migrate
+npx sequelize db:seed:all
+
+
+
+
+
