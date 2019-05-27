@@ -1,5 +1,4 @@
-
-#must login first
+#must login first to get the token. Then apply the token to each operation below
 mutation {
   loginUser(email: "admin@example.com", password:"password") {
     token, user{name, id, role}
@@ -7,61 +6,84 @@ mutation {
 }
 
 
-query {users{id,name,role, email}}
-
-query{students{id,name,role, courses{name,id}}}
-
+#Query all users
 query{
-  faculties{id name,role, courses {id name}}
+  users{id name role email}
+}
 
-query {
-  courses {id, name students{id name} faculty {id name role}}
+#Query current user
+query{
+  currentUser{id name role email}
 }
 
 
-query {
-  todos {id name}
+#Query all students
+query {students{id,name,role, email}}
+
+#Query all faculties
+query{
+  faculties{id name role email}
 }
 
+#Query all courses
+query {
+  courses {id, name, 
+    students {id name role} 
+    faculty{id name}}
+}
+
+#Query all student courses
 query{
   studentcourses{courseId userId}
 }
 
+#Query all assignments
 query{
   assignments{id name course {id name}}
 }
 
 
+#Create new user
 mutation {
-  loginUser(email: "admin@example.com", password:"password") {
-    token, user{firstName, id, role}
-  }
+  createUser(name: "new name", role:"Student", email: "newUser@example.com", password:"new-user-password") {id name role email}
 }
 
+#Create new course
 mutation {
-  createUser(name: "Admin", role:"Admin", email: "admin@example.com", password:"password") {id name role email salt passwordHash}
+  createCourse(name:"Machine learning", facultyId: 2) {id name}
 }
 
+#Add student course
 mutation {
-  createCourse(name:"Data Engineering", facultyId: 4) {id name}
+  addStudentCourse(userId:4, courseId:4) {id userId courseId}
 }
 
+#Add new assignment
+mutation{
+  createAssignment(name:"Final project",courseId:1){name, course {id name}}
+}
+
+#Add assignment grade (Does not work for now)
+mutation{
+  addAssignmentGrade(userId:4, assignmentId: 1, grade: 3.9) {id userId assignmentId grade}
+}
+
+#Delete a course
 mutation{
   deleteCourse(courseId:3) {id}
 }
 
-mutation {
-  addStudentCourse(userId:3, courseId:1) {id userId courseId}
-}
 
+#Delete an assignment
 mutation{
-  delStudentCourse(courseId:2,userId:10){courseId userId}
+  deleteAssignment(assignmentId:4) {id}
 }
 
-
+#remove student from course
 mutation{
-  addAssignmentGrade(userId:2,assignmentId:1,grade:3.9){userId assignmentId grade}
+  delStudentCourse(studentId:2,courseId:1) {id}
 }
+
 
 --- Database inital set-up ** DO NOT RUN *** ---
 npx sequelize model:generate --name User --attributes name:string,email:string,role:string,salt:string,passwordHash:string

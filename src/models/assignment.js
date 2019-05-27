@@ -6,6 +6,11 @@ module.exports = (sequelize, DataTypes) => {
   }, {});
   Assignment.associate = function(models) {
     // associations can be defined here
+    Assignment.belongsTo(models.Course, {foreignKey: 'courseId'});
+    Assignment.belongsToMany(models.User,{
+    	through: models.AssignmentGrade, 
+    	foreignKey: 'assignmentId',
+    });
   };
   return Assignment;
 };

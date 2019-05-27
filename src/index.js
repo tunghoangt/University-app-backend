@@ -22,6 +22,7 @@ const typeDefs = gql`
     todos: [Todo]
     courses: [Course]
     users: [User]
+    currentUser: User
     students: [Student]
     faculties: [Faculty]
     login: [User]
@@ -396,23 +397,23 @@ const resolvers = {
     hello: () => 'world',
     todos: makeResolver((root, args, context, info) => db.Todo.findAll()),
 
-    //Only Admin privilege
-    courses: makeResolver((root, args, context, info) => db.Course.findAll(), {roles: ['Admin']}),
+    currentUser:  makeResolver((root, args, context) => context.user),
+
+    users: makeResolver((root, args, context, info) => db.User.findAll(), {roles: ['Admin','Faculty','Student']}),
     
-    users: makeResolver((root, args, context, info) => db.User.findAll(), {roles: ['Admin']}),
-    
+    courses: makeResolver((root, args, context, info) => db.Course.findAll(), {roles: ['Admin','Faculty','Student']}),
+
     students: makeResolver((root, args, context, info) => db.User.findAll(
         {where: {role: 'Student'}}
-      ), {roles: ['Admin']}),
+      ), {roles: ['Admin','Faculty','Student']}),
     
     faculties: makeResolver((root, args, context, info) => db.User.findAll(
       {where: {role: 'Faculty'}}
-      ), {roles: ['Admin']}),
+      ), {roles: ['Admin','Faculty','Student']}),
 
-    // Both Admin & Facuty
-    studentcourses: makeResolver((root, args, context, info) => db.StudentCourse.findAll(), {roles: ['Admin','Faculty']}),
-    assignments: makeResolver((root, args, context, info) => db.Assignment.findAll(), {roles: ['Admin','Faculty']}),
-    assignmentgrades: makeResolver((root, args, context, info) => db.AssignmentGrade.findAll(), {roles: ['Admin','Faculty']}),
+    studentcourses: makeResolver((root, args, context, info) => db.StudentCourse.findAll(), {roles: ['Admin','Faculty','Student']}),
+    assignments: makeResolver((root, args, context, info) => db.Assignment.findAll(), {roles: ['Admin','Faculty','Student']}),
+    assignmentgrades: makeResolver((root, args, context, info) => db.AssignmentGrade.findAll(), {roles: ['Admin','Faculty','Student']}),
   },
 
   //Resolving user type
@@ -486,27 +487,34 @@ const resolvers = {
 
     // Create todo item
     createTodo: makeResolver((root, args, context, info) => {
-      return db.Todo.create({ name: args.name, done: false });
-    }, {roles: ['Admin']}),
+      return db.Todo.create({ 
+        name: args.name, 
+        done: false });
+    }, {roles: ['Admin','Faculty','Student']}),
 
     // Create user (Admin only)
-    // createUser: makeResolver((root, args, context, info) => {
-    //   return db.User.create({ name: args.name,email: args.email, 
-    //                           role: args.role, 
-    //                           ...genSaltHashPassword(args.password)});
-    // }, {}),
-    createUser: (root, args, context, info) => {
+    createUser: makeResolver((root, args, context, info) => {
       return db.User.create({ name: args.name,email: args.email, 
                               role: args.role, 
                               ...genSaltHashPassword(args.password)});
-    },
+    }, {role: ['Admin']}),
+    // createUser: (root, args, context, info) => {
+    //   return db.User.create({ 
+    //     name: args.name,
+    //     email: args.email, 
+    //     role: args.role, 
+    //     ...genSaltHashPassword(args.password)});
+    // },
 
     // Delete user by ID (Admin only)
     deleteUser: makeResolver((root, args, context, info) => {
-      return db.User.destroy({where: {id: args.userId, role: args.role}});
+      return db.User.destroy({
+        where: {
+          id: args.userId, 
+          role: args.role}});
     }, {roles: ['Admin']}),
 
-    //Add a course (Admin only)
+    //Add a course (Admin & Faculty only)
     createCourse: makeResolver((root, args, context) => {
       return db.Course.create({
         name: args.name, 
@@ -516,7 +524,8 @@ const resolvers = {
 
     // Delete course (Admin only)
     deleteCourse: makeResolver((root, args, context, info) => {
-      return db.Course.destroy({where: {id: args.courseId}});
+      return db.Course.destroy({
+        where: {id: args.courseId}});
     }, {roles: ['Admin']}),
 
     //Add an assignment
@@ -529,31 +538,44 @@ const resolvers = {
 
     // Delete an assignment
     deleteAssignment: makeResolver((root, args, context, info) => {
-      return db.Assignment.destroy({where: {id: args.assignmentId}});
+      return db.Assignment.destroy({
+        where: {id: args.assignmentId}});
     }, {roles: ['Admin','Faculty']}),
 
     // Add student to course given userId and courseId
     addStudentCourse: makeResolver((root, args, context, info) => {
-      return db.StudentCourse.create({userId: args.userId, courseId: args.courseId});
-    }), 
+      return db.StudentCourse.create({
+        userId: args.userId, 
+        courseId: args.courseId});
+    },{roles: ['Admin','Faculty']}), 
+    
     // Delete student from course
     delStudentCourse: makeResolver((root, args, context, info) => {
-      return db.StudentCourse.destroy({where: {userId: args.userId, courseId: args.courseId}});
-    }), 
-
+      return db.StudentCourse.destroy({
+        where: {
+          userId: args.userId, 
+          courseId: args.courseId}});
+    },{roles: ['Admin','Faculty']}), 
     // Add student grade given userId and courseId
     addAssignmentGrade: makeResolver((root, args, context, info) => {
-      return db.AssignmentGrade.create({userId: args.userId, assignmentId: args.assignmentId, grade: args.grade});
-    }), 
+      return db.AssignmentGrade.create({
+        userId: args.userId, 
+        assignmentId: args.assignmentId, 
+        grade: args.grade});
+    },{roles: ['Admin','Faculty']}), 
     //Remove grade record for an assignment
     delAssignmentGrade: makeResolver((root, args, context, info) => {
-      return db.AssignmentGrade.destroy({where: {userId: args.userId, assignmentId: args.assignmentId}});
-    }), 
+      return db.AssignmentGrade.destroy({
+        where: {
+          userId: args.userId, 
+          assignmentId: 
+          args.assignmentId}});
+    }, {roles: ['Admin','Faculty']}), 
   },
 };
 
 const server = new ApolloServer({
-  cors: false,
+  cors: true,
   typeDefs,
   resolvers,
   context: request => {
